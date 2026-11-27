@@ -15,5 +15,7 @@
   "Spot:BCHUSDT:15m:2026-11-27 03:14 UTC": true,
   "Spot:PAXGUSDT:15m:2026-11-27 03:14 UTC": true,
   "Spot:ETHFIUSDT:15m:2026-11-27 03:14 UTC": true,
-  "Spot:WIFUSDT:15m:2026-11-27 03:14 UTC": true
+  "Spot:WIFUSDT:15m:2026-11-27 03:14 UTC": true,
+  "__telegram_delivery_test_v1__": true,
+  "Spot:SPCXBUSDT:1m:2026-11-27 03:26 UTC": true
 }
