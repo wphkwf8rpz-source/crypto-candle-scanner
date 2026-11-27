@@ -1,4 +1,5 @@
 import os
+import json
 import asyncio
 import aiohttp
 from datetime import datetime, timezone
@@ -11,6 +12,7 @@ TOP_N = 100
 BASE = "https://api.binance.com"
 FUTURES = "https://fapi.binance.com"
 TIMEOUT = aiohttp.ClientTimeout(total=20)
+STATE_FILE = "sent_signals.json"
 
 def is_pattern(c):
     # c contains five completed klines, oldest first.
@@ -68,7 +70,15 @@ async def telegram(session, text):
         if r.status >= 400:
             raise RuntimeError(f"Telegram error {r.status}: {body}")
 
+def load_state():
+    try:
+        with open(STATE_FILE, "r", encoding="utf-8") as f:
+            return json.load(f)
+    except (FileNotFoundError, json.JSONDecodeError):
+        return {}
+
 async def main():
+    state = load_state()
     connector = aiohttp.TCPConnector(limit=12)
     async with aiohttp.ClientSession(timeout=TIMEOUT, connector=connector) as session:
         tasks = []
@@ -81,12 +91,19 @@ async def main():
                     tasks.append(scan_one(session, symbol, interval, futures))
         results = await asyncio.gather(*tasks)
         found = [x for x in results if x]
-        if found:
-            for market, symbol, interval, closed_at in found:
-                await telegram(session, f"🟢 Свічковий сигнал\nРинок: Binance {market}\nПара: {symbol}\nТаймфрейм: {interval}\nП'ята свічка закрилась: {closed_at}\nПеревір графік перед угодою.")
-        else:
-            print("No patterns found.")
-        print(f"Finished. Signals: {len(found)}")
+        new_count = 0
+        for market, symbol, interval, closed_at in found:
+            key = market + ":" + symbol + ":" + interval + ":" + closed_at
+            if key in state:
+                continue
+            await telegram(session, f"🟢 Свічковий сигнал\nРинок: Binance {market}\nПара: {symbol}\nТаймфрейм: {interval}\nП'ята свічка закрилась: {closed_at}\nПеревір графік перед угодою.")
+            state[key] = True
+            new_count += 1
+        if len(state) > 2000:
+            state = dict(list(state.items())[-2000:])
+        with open(STATE_FILE, "w", encoding="utf-8") as f:
+            json.dump(state, f, ensure_ascii=False, indent=2)
+        print(f"Finished. New signals: {new_count}")
 
 if __name__ == "__main__":
     asyncio.run(main())
