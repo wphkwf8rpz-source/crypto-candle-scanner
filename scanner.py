@@ -9,8 +9,8 @@ CHAT_ID = os.environ["TG_CHAT_ID"]
 INTERVALS = ["5m", "15m", "1h", "4h"]
 QUOTE = "USDT"
 TOP_N = 100
-BASE = "https://api.binance.com"
-FUTURES = "https://fapi.binance.com"
+SPOT_ROOTS = ["https://data-api.binance.vision", "https://api1.binance.com", "https://api2.binance.com", "https://api3.binance.com"]
+FUTURES_ROOTS = ["https://fapi1.binance.com", "https://fapi2.binance.com", "https://fapi3.binance.com", "https://fapi4.binance.com", "https://fapi.binance.com"]
 TIMEOUT = aiohttp.ClientTimeout(total=20)
 STATE_FILE = "sent_signals.json"
 
@@ -30,10 +30,21 @@ async def get_json(session, url, params=None):
         r.raise_for_status()
         return await r.json()
 
+async def get_json_any(session, roots, path, params=None):
+    errors = []
+    for root in roots:
+        try:
+            return await get_json(session, root + path, params)
+        except Exception as e:
+            errors.append(f"{root}: {e}")
+    raise RuntimeError("All Binance API endpoints failed: " + " | ".join(errors))
+
 async def get_symbols(session, futures=False):
-    root = FUTURES if futures else BASE
-    info = await get_json(session, root + "/fapi/v1/exchangeInfo" if futures else root + "/api/v3/exchangeInfo")
-    tickers = await get_json(session, root + "/fapi/v1/ticker/24hr" if futures else root + "/api/v3/ticker/24hr")
+    roots = FUTURES_ROOTS if futures else SPOT_ROOTS
+    info_path = "/fapi/v1/exchangeInfo" if futures else "/api/v3/exchangeInfo"
+    ticker_path = "/fapi/v1/ticker/24hr" if futures else "/api/v3/ticker/24hr"
+    info = await get_json_any(session, roots, info_path)
+    tickers = await get_json_any(session, roots, ticker_path)
     allowed = {
         s["symbol"] for s in info["symbols"]
         if s.get("quoteAsset") == QUOTE
@@ -45,10 +56,10 @@ async def get_symbols(session, futures=False):
     return [x["symbol"] for x in ranked[:TOP_N]]
 
 async def scan_one(session, symbol, interval, futures=False):
-    root = FUTURES if futures else BASE
+    roots = FUTURES_ROOTS if futures else SPOT_ROOTS
     path = "/fapi/v1/klines" if futures else "/api/v3/klines"
     try:
-        rows = await get_json(session, root + path, {"symbol": symbol, "interval": interval, "limit": 6})
+        rows = await get_json_any(session, roots, path, {"symbol": symbol, "interval": interval, "limit": 6})
         # Ignore the currently forming candle; evaluate the latest five closed candles.
         now_ms = int(datetime.now(timezone.utc).timestamp() * 1000)
         closed = [k for k in rows if int(k[6]) < now_ms]
