@@ -6,7 +6,7 @@ from datetime import datetime, timezone
 
 BOT_TOKEN = os.environ["TG_BOT_TOKEN"]
 CHAT_ID = os.environ["TG_CHAT_ID"]
-INTERVALS = ["5m", "15m", "1h", "4h"]
+INTERVALS = ["1m", "3m", "5m", "15m", "30m", "1h", "2h", "4h", "6h", "8h", "12h", "1d", "2d", "3d", "1w"]
 QUOTE = "USDT"
 TOP_N = 100
 SPOT_ROOTS = ["https://data-api.binance.vision", "https://api1.binance.com", "https://api2.binance.com", "https://api3.binance.com"]
@@ -56,10 +56,31 @@ async def scan_one(session, symbol, interval):
     roots = SPOT_ROOTS
     path = "/api/v3/klines"
     try:
-        rows = await get_json_any(session, roots, path, {"symbol": symbol, "interval": interval, "limit": 6})
-        # Ignore the currently forming candle; evaluate the latest five closed candles.
-        now_ms = int(datetime.now(timezone.utc).timestamp() * 1000)
-        closed = [k for k in rows if int(k[6]) < now_ms]
+        # Binance Spot has no native 2d interval, so build 2-day candles
+        # by combining pairs of UTC daily candles.
+        if interval == "2d":
+            rows = await get_json_any(session, roots, path, {"symbol": symbol, "interval": "1d", "limit": 14})
+            now_ms = int(datetime.now(timezone.utc).timestamp() * 1000)
+            groups = {}
+            for k in rows:
+                day_index = int(k[0]) // 86400000
+                groups.setdefault(day_index // 2, []).append(k)
+            closed = []
+            for group in groups.values():
+                group.sort(key=lambda x: int(x[0]))
+                if len(group) == 2 and int(group[-1][6]) < now_ms:
+                    a, b = group
+                    closed.append([
+                        a[0], a[1], max(float(a[2]), float(b[2])),
+                        min(float(a[3]), float(b[3])), b[4],
+                        float(a[5]) + float(b[5]), b[6]
+                    ])
+            closed.sort(key=lambda x: int(x[0]))
+        else:
+            rows = await get_json_any(session, roots, path, {"symbol": symbol, "interval": interval, "limit": 6})
+            # Ignore the currently forming candle; evaluate the latest five closed candles.
+            now_ms = int(datetime.now(timezone.utc).timestamp() * 1000)
+            closed = [k for k in rows if int(k[6]) < now_ms]
         if len(closed) < 5:
             return None
         candles = closed[-5:]
@@ -86,7 +107,7 @@ def load_state():
 
 async def main():
     state = load_state()
-    connector = aiohttp.TCPConnector(limit=12)
+    connector = aiohttp.TCPConnector(limit=20)
     async with aiohttp.ClientSession(timeout=TIMEOUT, connector=connector) as session:
         tasks = []
         symbols = await get_symbols(session)
