@@ -17,5 +17,12 @@
   "Spot:ETHFIUSDT:15m:2026-11-27 03:14 UTC": true,
   "Spot:WIFUSDT:15m:2026-11-27 03:14 UTC": true,
   "__telegram_delivery_test_v1__": true,
-  "Spot:SPCXBUSDT:1m:2026-11-27 03:26 UTC": true
+  "Spot:SPCXBUSDT:1m:2026-11-27 03:26 UTC": true,
+  "Spot:XRPUSDT:1m:2026-11-27 03:33 UTC": true,
+  "Spot:XRPUSDT:30m:2026-11-27 03:29 UTC": true,
+  "Spot:DOGEUSDT:30m:2026-11-27 03:29 UTC": true,
+  "Spot:NBISBUSDT:3m:2026-11-27 03:32 UTC": true,
+  "Spot:ASTERUSDT:30m:2026-11-27 03:29 UTC": true,
+  "Spot:QQQBUSDT:15m:2026-11-27 03:29 UTC": true,
+  "Spot:RAYUSDT:30m:2026-11-27 03:29 UTC": true
 }
