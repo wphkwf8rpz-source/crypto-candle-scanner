@@ -67,7 +67,7 @@ async def scan_one(session, symbol, interval):
             close_time = datetime.fromtimestamp(int(candles[-1][6]) / 1000, timezone.utc)
             return ("Spot", symbol, interval, close_time.strftime("%Y-%m-%d %H:%M UTC"))
     except Exception as e:
-        print(f"Error {symbol} {interval} futures={futures}: {e}")
+        print(f"Error {symbol} {interval}: {e}")
     return None
 
 async def telegram(session, text):
