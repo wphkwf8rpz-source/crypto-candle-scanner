@@ -44,5 +44,7 @@
   "Spot:SPCXBUSDT:8h:2026-11-27 07:59 UTC": true,
   "Spot:QNTUSDT:8h:2026-11-27 07:59 UTC": true,
   "Spot:ICPUSDT:4h:2026-11-27 11:59 UTC": true,
-  "Spot:XPLUSDT:12h:2026-11-27 11:59 UTC": true
+  "Spot:XPLUSDT:12h:2026-11-27 11:59 UTC": true,
+  "Spot:HYPEUSDT:1h:2026-11-27 12:59 UTC": true,
+  "Spot:MEUSDT:5m:2026-11-27 13:39 UTC": true
 }
