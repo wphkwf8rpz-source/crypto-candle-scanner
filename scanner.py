@@ -10,7 +10,6 @@ INTERVALS = ["5m", "15m", "1h", "4h"]
 QUOTE = "USDT"
 TOP_N = 100
 SPOT_ROOTS = ["https://data-api.binance.vision", "https://api1.binance.com", "https://api2.binance.com", "https://api3.binance.com"]
-FUTURES_ROOTS = ["https://fapi1.binance.com", "https://fapi2.binance.com", "https://fapi3.binance.com", "https://fapi4.binance.com", "https://fapi.binance.com"]
 TIMEOUT = aiohttp.ClientTimeout(total=20)
 STATE_FILE = "sent_signals.json"
 
@@ -39,25 +38,23 @@ async def get_json_any(session, roots, path, params=None):
             errors.append(f"{root}: {e}")
     raise RuntimeError("All Binance API endpoints failed: " + " | ".join(errors))
 
-async def get_symbols(session, futures=False):
-    roots = FUTURES_ROOTS if futures else SPOT_ROOTS
-    info_path = "/fapi/v1/exchangeInfo" if futures else "/api/v3/exchangeInfo"
-    ticker_path = "/fapi/v1/ticker/24hr" if futures else "/api/v3/ticker/24hr"
-    info = await get_json_any(session, roots, info_path)
-    tickers = await get_json_any(session, roots, ticker_path)
+async def get_symbols(session):
+    roots = SPOT_ROOTS
+    info = await get_json_any(session, roots, "/api/v3/exchangeInfo")
+    tickers = await get_json_any(session, roots, "/api/v3/ticker/24hr")
     allowed = {
         s["symbol"] for s in info["symbols"]
         if s.get("quoteAsset") == QUOTE
         and s.get("status") == "TRADING"
-        and (s.get("contractType") == "PERPETUAL" if futures else s.get("isSpotTradingAllowed", False))
+        and s.get("isSpotTradingAllowed", False)
     }
     ranked = [t for t in tickers if t["symbol"] in allowed]
     ranked.sort(key=lambda x: float(x.get("quoteVolume", 0)), reverse=True)
     return [x["symbol"] for x in ranked[:TOP_N]]
 
-async def scan_one(session, symbol, interval, futures=False):
-    roots = FUTURES_ROOTS if futures else SPOT_ROOTS
-    path = "/fapi/v1/klines" if futures else "/api/v3/klines"
+async def scan_one(session, symbol, interval):
+    roots = SPOT_ROOTS
+    path = "/api/v3/klines"
     try:
         rows = await get_json_any(session, roots, path, {"symbol": symbol, "interval": interval, "limit": 6})
         # Ignore the currently forming candle; evaluate the latest five closed candles.
@@ -68,8 +65,7 @@ async def scan_one(session, symbol, interval, futures=False):
         candles = closed[-5:]
         if is_pattern(candles):
             close_time = datetime.fromtimestamp(int(candles[-1][6]) / 1000, timezone.utc)
-            market = "Futures" if futures else "Spot"
-            return (market, symbol, interval, close_time.strftime("%Y-%m-%d %H:%M UTC"))
+            return ("Spot", symbol, interval, close_time.strftime("%Y-%m-%d %H:%M UTC"))
     except Exception as e:
         print(f"Error {symbol} {interval} futures={futures}: {e}")
     return None
@@ -93,13 +89,11 @@ async def main():
     connector = aiohttp.TCPConnector(limit=12)
     async with aiohttp.ClientSession(timeout=TIMEOUT, connector=connector) as session:
         tasks = []
-        for futures in (False, True):
-            symbols = await get_symbols(session, futures)
-            market = "Futures" if futures else "Spot"
-            print(f"{market}: scanning {len(symbols)} USDT pairs")
-            for symbol in symbols:
-                for interval in INTERVALS:
-                    tasks.append(scan_one(session, symbol, interval, futures))
+        symbols = await get_symbols(session)
+        print(f"Spot: scanning {len(symbols)} USDT pairs")
+        for symbol in symbols:
+            for interval in INTERVALS:
+                tasks.append(scan_one(session, symbol, interval))
         results = await asyncio.gather(*tasks)
         found = [x for x in results if x]
         new_count = 0
