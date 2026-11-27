@@ -25,5 +25,8 @@
   "Spot:ASTERUSDT:30m:2026-11-27 03:29 UTC": true,
   "Spot:QQQBUSDT:15m:2026-11-27 03:29 UTC": true,
   "Spot:RAYUSDT:30m:2026-11-27 03:29 UTC": true,
-  "Spot:MOVEUSDT:3m:2026-11-27 03:41 UTC": true
+  "Spot:MOVEUSDT:3m:2026-11-27 03:41 UTC": true,
+  "Spot:WIFUSDT:4h:2026-11-27 03:59 UTC": true,
+  "Spot:SAGAUSDT:4h:2026-11-27 03:59 UTC": true,
+  "Spot:SENTUSDT:4h:2026-11-27 03:59 UTC": true
 }
