@@ -1,0 +1,92 @@
+import os
+import asyncio
+import aiohttp
+from datetime import datetime, timezone
+
+BOT_TOKEN = os.environ["TG_BOT_TOKEN"]
+CHAT_ID = os.environ["TG_CHAT_ID"]
+INTERVALS = ["5m", "15m", "1h", "4h"]
+QUOTE = "USDT"
+TOP_N = 100
+BASE = "https://api.binance.com"
+FUTURES = "https://fapi.binance.com"
+TIMEOUT = aiohttp.ClientTimeout(total=20)
+
+def is_pattern(c):
+    # c contains five completed klines, oldest first.
+    first_three_green = all(float(x[4]) > float(x[1]) for x in c[:3])
+    fourth_red = float(c[3][4]) < float(c[3][1])
+    fifth_green = float(c[4][4]) > float(c[4][1])
+    red_inside_third = (
+        float(c[3][2]) < float(c[2][2]) and
+        float(c[3][3]) > float(c[2][3])
+    )
+    return first_three_green and fourth_red and red_inside_third and fifth_green
+
+async def get_json(session, url, params=None):
+    async with session.get(url, params=params) as r:
+        r.raise_for_status()
+        return await r.json()
+
+async def get_symbols(session, futures=False):
+    root = FUTURES if futures else BASE
+    info = await get_json(session, root + "/fapi/v1/exchangeInfo" if futures else root + "/api/v3/exchangeInfo")
+    tickers = await get_json(session, root + "/fapi/v1/ticker/24hr" if futures else root + "/api/v3/ticker/24hr")
+    allowed = {
+        s["symbol"] for s in info["symbols"]
+        if s.get("quoteAsset") == QUOTE
+        and s.get("status") == "TRADING"
+        and (s.get("contractType") == "PERPETUAL" if futures else s.get("isSpotTradingAllowed", False))
+    }
+    ranked = [t for t in tickers if t["symbol"] in allowed]
+    ranked.sort(key=lambda x: float(x.get("quoteVolume", 0)), reverse=True)
+    return [x["symbol"] for x in ranked[:TOP_N]]
+
+async def scan_one(session, symbol, interval, futures=False):
+    root = FUTURES if futures else BASE
+    path = "/fapi/v1/klines" if futures else "/api/v3/klines"
+    try:
+        rows = await get_json(session, root + path, {"symbol": symbol, "interval": interval, "limit": 6})
+        # Ignore the currently forming candle; evaluate the latest five closed candles.
+        now_ms = int(datetime.now(timezone.utc).timestamp() * 1000)
+        closed = [k for k in rows if int(k[6]) < now_ms]
+        if len(closed) < 5:
+            return None
+        candles = closed[-5:]
+        if is_pattern(candles):
+            close_time = datetime.fromtimestamp(int(candles[-1][6]) / 1000, timezone.utc)
+            market = "Futures" if futures else "Spot"
+            return (market, symbol, interval, close_time.strftime("%Y-%m-%d %H:%M UTC"))
+    except Exception as e:
+        print(f"Error {symbol} {interval} futures={futures}: {e}")
+    return None
+
+async def telegram(session, text):
+    url = f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage"
+    async with session.post(url, json={"chat_id": CHAT_ID, "text": text, "disable_web_page_preview": True}) as r:
+        body = await r.text()
+        if r.status >= 400:
+            raise RuntimeError(f"Telegram error {r.status}: {body}")
+
+async def main():
+    connector = aiohttp.TCPConnector(limit=12)
+    async with aiohttp.ClientSession(timeout=TIMEOUT, connector=connector) as session:
+        tasks = []
+        for futures in (False, True):
+            symbols = await get_symbols(session, futures)
+            market = "Futures" if futures else "Spot"
+            print(f"{market}: scanning {len(symbols)} USDT pairs")
+            for symbol in symbols:
+                for interval in INTERVALS:
+                    tasks.append(scan_one(session, symbol, interval, futures))
+        results = await asyncio.gather(*tasks)
+        found = [x for x in results if x]
+        if found:
+            for market, symbol, interval, closed_at in found:
+                await telegram(session, f"🟢 Свічковий сигнал\nРинок: Binance {market}\nПара: {symbol}\nТаймфрейм: {interval}\nП'ята свічка закрилась: {closed_at}\nПеревір графік перед угодою.")
+        else:
+            print("No patterns found.")
+        print(f"Finished. Signals: {len(found)}")
+
+if __name__ == "__main__":
+    asyncio.run(main())
