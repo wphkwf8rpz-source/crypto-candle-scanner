@@ -109,6 +109,12 @@ async def main():
     state = load_state()
     connector = aiohttp.TCPConnector(limit=20)
     async with aiohttp.ClientSession(timeout=TIMEOUT, connector=connector) as session:
+        # One-time delivery check to the configured Telegram chat.
+        test_key = "__telegram_delivery_test_v1__"
+        if not state.get(test_key):
+            await telegram(session, "✅ Тест зв'язку: Binance Candle Scanner успішно надсилає повідомлення в цей Telegram-чат.")
+            state[test_key] = True
+            print("Telegram delivery test: sent successfully")
         tasks = []
         symbols = await get_symbols(session)
         print(f"Spot: scanning {len(symbols)} USDT pairs")
