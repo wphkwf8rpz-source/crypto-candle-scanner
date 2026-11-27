@@ -30,5 +30,10 @@
   "Spot:SAGAUSDT:4h:2026-11-27 03:59 UTC": true,
   "Spot:SENTUSDT:4h:2026-11-27 03:59 UTC": true,
   "Spot:USD1USDT:30m:2026-11-27 04:29 UTC": true,
-  "Spot:JUPUSDT:30m:2026-11-27 04:29 UTC": true
+  "Spot:JUPUSDT:30m:2026-11-27 04:29 UTC": true,
+  "Spot:SUIUSDT:15m:2026-11-27 05:14 UTC": true,
+  "Spot:LINKUSDT:15m:2026-11-27 05:14 UTC": true,
+  "Spot:INJUSDT:1h:2026-11-27 04:59 UTC": true,
+  "Spot:QQQBUSDT:30m:2026-11-27 04:59 UTC": true,
+  "Spot:APTUSDT:1h:2026-11-27 04:59 UTC": true
 }
