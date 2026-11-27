@@ -125,6 +125,16 @@ async def main():
             await telegram(session, f"🟢 Свічковий сигнал\nРинок: Binance {market}\nПара: {symbol}\nТаймфрейм: {interval}\nП'ята свічка закрилась: {closed_at}\nПеревір графік перед угодою.")
             state[key] = True
             new_count += 1
+        if new_count == 0:
+            checked_at = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
+            await telegram(
+                session,
+                f"ℹ️ Перевірку завершено: нових сигналів не знайдено.\\n"
+                f"Binance Spot: топ-{len(symbols)} пар USDT\\n"
+                f"Таймфрейми: {', '.join(INTERVALS)}\\n"
+                f"Час перевірки: {checked_at}\\n"
+                "Наступна перевірка — приблизно через 5 хвилин."
+            )
         if len(state) > 2000:
             state = dict(list(state.items())[-2000:])
         with open(STATE_FILE, "w", encoding="utf-8") as f:
