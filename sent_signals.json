@@ -35,5 +35,14 @@
   "Spot:LINKUSDT:15m:2026-11-27 05:14 UTC": true,
   "Spot:INJUSDT:1h:2026-11-27 04:59 UTC": true,
   "Spot:QQQBUSDT:30m:2026-11-27 04:59 UTC": true,
-  "Spot:APTUSDT:1h:2026-11-27 04:59 UTC": true
+  "Spot:APTUSDT:1h:2026-11-27 04:59 UTC": true,
+  "Spot:BTCUSDT:8h:2026-11-27 07:59 UTC": true,
+  "Spot:HYPEUSDT:4h:2026-11-27 11:59 UTC": true,
+  "Spot:WBTCUSDT:8h:2026-11-27 07:59 UTC": true,
+  "Spot:DOGEUSDT:8h:2026-11-27 07:59 UTC": true,
+  "Spot:WLDUSDT:8h:2026-11-27 07:59 UTC": true,
+  "Spot:SPCXBUSDT:8h:2026-11-27 07:59 UTC": true,
+  "Spot:QNTUSDT:8h:2026-11-27 07:59 UTC": true,
+  "Spot:ICPUSDT:4h:2026-11-27 11:59 UTC": true,
+  "Spot:XPLUSDT:12h:2026-11-27 11:59 UTC": true
 }
