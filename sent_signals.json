@@ -8,5 +8,6 @@
   "Spot:NIGHTUSDT:2h:2026-11-27 01:59 UTC": true,
   "Spot:ONDOUSDT:30m:2026-11-27 02:29 UTC": true,
   "Spot:DASHUSDT:30m:2026-11-27 02:29 UTC": true,
-  "Spot:SENTUSDT:3d:2026-11-26 23:59 UTC": true
+  "Spot:SENTUSDT:3d:2026-11-26 23:59 UTC": true,
+  "Spot:NIGHTUSDT:15m:2026-11-27 02:59 UTC": true
 }
