@@ -2,8 +2,10 @@ name: Binance candle scanner
 
 on:
   workflow_dispatch:
+  push:
+    branches: [main]
   schedule:
-    - cron: "2-59/5 * * * *"
+    - cron: "*/5 * * * *"
 
 permissions:
   contents: write
